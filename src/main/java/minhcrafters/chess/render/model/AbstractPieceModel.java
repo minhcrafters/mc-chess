@@ -9,7 +9,6 @@ import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3f;
 
 public abstract class AbstractPieceModel implements PieceModel {
-
     protected DisplayEntity.BlockDisplayEntity createPart(ServerWorld world, Vec3d rootPos, float offsetX,
             float offsetY, float offsetZ, float sizeX, float sizeY, float sizeZ, BlockState state) {
         DisplayEntity.BlockDisplayEntity entity = new DisplayEntity.BlockDisplayEntity(EntityType.BLOCK_DISPLAY, world);

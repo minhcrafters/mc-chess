@@ -7,16 +7,19 @@ import net.minecraft.entity.decoration.DisplayEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.text.Text;
 import org.joml.Vector3f;
 
 import java.util.*;
 
 public class ChessBoardRenderer {
     private final Map<UUID, List<DisplayEntity.BlockDisplayEntity>> gameEntities;
+    private final Map<UUID, List<DisplayEntity.TextDisplayEntity>> timerEntities;
     private final Map<Piece.PieceType, PieceModel> pieceModels;
 
     public ChessBoardRenderer() {
         this.gameEntities = new HashMap<>();
+        this.timerEntities = new HashMap<>();
         this.pieceModels = new HashMap<>();
 
         pieceModels.put(Piece.PieceType.PAWN, new PawnModel());
@@ -58,6 +61,7 @@ public class ChessBoardRenderer {
         }
 
         gameEntities.put(gameId, entities);
+        spawnTimers(world, game, boardCenter);
     }
 
     private DisplayEntity.BlockDisplayEntity createSquare(ServerWorld world, BlockPos boardCenter, int row, int col,
@@ -137,11 +141,20 @@ public class ChessBoardRenderer {
         }
     }
 
+
+
     public void clearBoard(ServerWorld world, UUID gameId) {
         List<DisplayEntity.BlockDisplayEntity> entities = gameEntities.remove(gameId);
         if (entities != null) {
             for (DisplayEntity.BlockDisplayEntity entity : entities) {
                 entity.discard();
+            }
+        }
+
+        List<DisplayEntity.TextDisplayEntity> timers = timerEntities.remove(gameId);
+        if (timers != null) {
+            for (DisplayEntity.TextDisplayEntity timer : timers) {
+                timer.discard();
             }
         }
     }
@@ -172,7 +185,7 @@ public class ChessBoardRenderer {
             highlight.setBlockState(Blocks.LIME_STAINED_GLASS.getDefaultState());
 
             highlight.setTransformation(new net.minecraft.util.math.AffineTransformation(
-                    null,
+                    new Vector3f(0.1f, 0.0f, 0.1f),
                     null,
                     new Vector3f(0.8f, 0.05f, 0.8f),
                     null));
@@ -197,5 +210,52 @@ public class ChessBoardRenderer {
             }
             return false;
         });
+    }
+
+    private void spawnTimers(ServerWorld world, ChessGame game, BlockPos boardCenter) {
+        List<DisplayEntity.TextDisplayEntity> timers = new ArrayList<>();
+
+        // White Timer (behind White side, row 0)
+        Vec3d whitePos = new Vec3d(
+                boardCenter.getX() + 3.5,
+                boardCenter.getY() + 2.0,
+                boardCenter.getZ() - 1.0);
+        timers.add(createTimerEntity(world, whitePos, "White: " + formatTime(game.getWhiteTime())));
+
+        // Black Timer (behind Black side, row 7)
+        Vec3d blackPos = new Vec3d(
+                boardCenter.getX() + 3.5,
+                boardCenter.getY() + 2.0,
+                boardCenter.getZ() + 9.0);
+        timers.add(createTimerEntity(world, blackPos, "Black: " + formatTime(game.getBlackTime())));
+
+        timerEntities.put(game.getGameId(), timers);
+    }
+
+    private DisplayEntity.TextDisplayEntity createTimerEntity(ServerWorld world, Vec3d pos, String text) {
+        DisplayEntity.TextDisplayEntity entity = new DisplayEntity.TextDisplayEntity(
+                net.minecraft.entity.EntityType.TEXT_DISPLAY,
+                world);
+        entity.setPosition(pos);
+        entity.setText(Text.of(text));
+        entity.setBillboardMode(DisplayEntity.BillboardMode.CENTER);
+        entity.setBackground(0x40000000); // Semi-transparent black background
+        world.spawnEntity(entity);
+        return entity;
+    }
+
+    private String formatTime(long ticks) {
+        long seconds = ticks / 20;
+        long minutes = seconds / 60;
+        long secs = seconds % 60;
+        return String.format("%02d:%02d", minutes, secs);
+    }
+
+    public void updateTimers(ChessGame game) {
+        List<DisplayEntity.TextDisplayEntity> timers = timerEntities.get(game.getGameId());
+        if (timers != null && timers.size() >= 2) {
+            timers.get(0).setText(Text.of("White: " + formatTime(game.getWhiteTime())));
+            timers.get(1).setText(Text.of("Black: " + formatTime(game.getBlackTime())));
+        }
     }
 }

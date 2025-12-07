@@ -1,41 +1,37 @@
 {
-	"schemaVersion": 1,
-	"id": "chess",
-	"version": "${version}",
-	"name": "Chess",
-	"description": "This is an example description! Tell everyone what your mod is about!",
-	"authors": [
-		"Me!"
-	],
-	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
-	},
-	"license": "CC0-1.0",
-	"icon": "assets/chess/icon.png",
-	"environment": "*",
-	"entrypoints": {
-		"main": [
-			"minhcrafters.chess.Chess"
-		],
-		"client": [
-			"minhcrafters.chess.ChessClient"
-		]
-	},
-	"mixins": [
-		"chess.mixins.json",
-		{
-			"config": "chess.client.mixins.json",
-			"environment": "client"
-		}
-	],
-	"depends": {
-		"fabricloader": ">=0.18.1",
-		"minecraft": "~1.21.10",
-		"java": ">=21",
-		"fabric-api": "*"
-	},
-	"suggests": {
-		"another-mod": "*"
-	}
+    "schemaVersion": 1,
+    "id": "chess",
+    "version": "${version}",
+    "name": "Chess",
+    "description": "Chess in Minecraft!",
+    "authors": ["minhcrafters"],
+    "contact": {
+        "sources": "https://github.com/minhcrafters/mc-chess"
+    },
+    "license": "CC0-1.0",
+    "icon": "assets/chess/icon.png",
+    "environment": "*",
+    "entrypoints": {
+        "main": ["minhcrafters.chess.Chess"],
+        "client": ["minhcrafters.chess.ChessClient"],
+        "modmenu": ["minhcrafters.chess.ModMenuImpl"]
+    },
+    "mixins": [
+        "chess.mixins.json",
+        {
+            "config": "chess.client.mixins.json",
+            "environment": "client"
+        }
+    ],
+    "depends": {
+        "fabricloader": ">=0.18.1",
+        "minecraft": "~1.21.10",
+        "java": ">=21",
+        "fabric-api": "*",
+        "yet_another_config_lib_v3": ">=3.8",
+        "modmenu": ">=15"
+    },
+    "suggests": {
+        "another-mod": "*"
+    }
 }

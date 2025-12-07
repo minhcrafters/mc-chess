@@ -1,11 +1,15 @@
 package minhcrafters.chess.interaction;
 
+import minhcrafters.chess.config.ChessConfig;
 import minhcrafters.chess.game.*;
 import minhcrafters.chess.render.ChessBoardRenderer;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.particle.ParticleTypes;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -121,19 +125,28 @@ public class ChessInteractionHandler {
 
                 if (!legalMoves.isEmpty()) {
                     selectedPieces.put(playerId, new SelectedPiece(row, col, game.getGameId()));
-                    player.sendMessage(Text.literal("§aPiece selected. Click a highlighted square to move."), true);
+                    if (ChessConfig.HANDLER.instance().showOverlay) {
+                        player.sendMessage(Text.literal("§aPiece selected. Click a highlighted square to move."), true);
+                    }
 
                     // Highlight valid moves
                     List<int[]> validSquares = new ArrayList<>();
                     for (Move move : legalMoves) {
                         validSquares.add(new int[] { move.getToRow(), move.getToCol() });
                     }
-                    renderer.highlightSquares(world, game, boardCenter, validSquares);
+
+                    if (ChessConfig.HANDLER.instance().showLegalMoves) {
+                        renderer.highlightSquares(world, game, boardCenter, validSquares);
+                    }
                 } else {
-                    player.sendMessage(Text.literal("§cThis piece has no legal moves."), true);
+                    if (ChessConfig.HANDLER.instance().showOverlay) {
+                        player.sendMessage(Text.literal("§cThis piece has no legal moves."), true);
+                    }
                 }
             } else {
-                player.sendMessage(Text.literal("§cSelect one of your pieces."), true);
+                if (ChessConfig.HANDLER.instance().showOverlay) {
+                    player.sendMessage(Text.literal("§cSelect one of your pieces."), true);
+                }
             }
         } else {
             // Try to move selected piece
@@ -147,7 +160,9 @@ public class ChessInteractionHandler {
             if (row == selected.row && col == selected.col) {
                 // Deselect
                 selectedPieces.remove(playerId);
-                player.sendMessage(Text.literal("§7Piece deselected."), true);
+                if (ChessConfig.HANDLER.instance().showOverlay) {
+                    player.sendMessage(Text.literal("§7Piece deselected."), true);
+                }
             } else {
                 // Try to make the move
                 boolean success = game.makeMove(selected.row, selected.col, row, col);
@@ -156,11 +171,12 @@ public class ChessInteractionHandler {
                     selectedPieces.remove(playerId);
 
                     // Update the board visually
+                    Move lastMove = game.getBoard().getLastMove();
+                    
                     renderer.updatePiece(world, game, boardCenter, selected.row, selected.col);
                     renderer.updatePiece(world, game, boardCenter, row, col);
 
                     // Handle special moves
-                    Move lastMove = game.getBoard().getLastMove();
                     if (lastMove != null) {
                         if (lastMove.getMoveType() == Move.MoveType.CASTLE_KINGSIDE) {
                             renderer.updatePiece(world, game, boardCenter, row, 7);
@@ -179,13 +195,16 @@ public class ChessInteractionHandler {
 
                     if (game.isInCheck()) {
                         broadcastToGame(world, game, Text.literal("§cCheck!"));
+                        spawnCheckParticles(world, game, boardCenter);
                     }
 
                     // Check game state
                     if (game.getState() == ChessGame.GameState.WHITE_WINS) {
                         broadcastToGame(world, game, Text.literal("§6§lCheckmate! White wins!"));
+                        spawnCheckmateParticles(world, game, boardCenter);
                     } else if (game.getState() == ChessGame.GameState.BLACK_WINS) {
                         broadcastToGame(world, game, Text.literal("§6§lCheckmate! Black wins!"));
+                        spawnCheckmateParticles(world, game, boardCenter);
                     } else if (game.getState() == ChessGame.GameState.STALEMATE) {
                         broadcastToGame(world, game, Text.literal("§6§lStalemate! Draw!"));
                     } else {
@@ -194,7 +213,9 @@ public class ChessInteractionHandler {
                     }
                 } else {
                     selectedPieces.remove(playerId);
-                    player.sendMessage(Text.literal("§cIllegal move!"), true);
+                    if (ChessConfig.HANDLER.instance().showOverlay) {
+                        player.sendMessage(Text.literal("§cIllegal move!"), true);
+                    }
                 }
             }
         }
@@ -222,6 +243,31 @@ public class ChessInteractionHandler {
             if (player != null) {
                 player.sendMessage(message, false);
             }
+        }
+    }
+
+    private void spawnCheckParticles(ServerWorld world, ChessGame game, BlockPos boardCenter) {
+        int[] kingPos = game.getBoard().findKing(game.getCurrentPlayer());
+        if (kingPos != null) {
+            double x = boardCenter.getX() + kingPos[1] + 0.5;
+            double y = boardCenter.getY() + 1.5;
+            double z = boardCenter.getZ() + kingPos[0] + 0.5;
+
+            world.spawnParticles(ParticleTypes.ANGRY_VILLAGER, x, y, z, 5, 0.3, 0.3, 0.3, 0.1);
+            world.playSound(null, x, y, z, SoundEvents.BLOCK_NOTE_BLOCK_BELL, SoundCategory.PLAYERS, 1.0f, 1.0f);
+        }
+    }
+
+    private void spawnCheckmateParticles(ServerWorld world, ChessGame game, BlockPos boardCenter) {
+        // Find the losing king
+        int[] kingPos = game.getBoard().findKing(game.getCurrentPlayer());
+        if (kingPos != null) {
+            double x = boardCenter.getX() + kingPos[1] + 0.5;
+            double y = boardCenter.getY() + 1.0;
+            double z = boardCenter.getZ() + kingPos[0] + 0.5;
+
+            world.spawnParticles(ParticleTypes.TOTEM_OF_UNDYING, x, y, z, 50, 0.5, 0.5, 0.5, 0.5);
+            world.playSound(null, x, y, z, SoundEvents.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 1.0f, 1.0f);
         }
     }
 

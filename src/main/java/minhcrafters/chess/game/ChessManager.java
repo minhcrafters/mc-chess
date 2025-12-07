@@ -1,10 +1,13 @@
 package minhcrafters.chess.game;
 
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+
+import minhcrafters.chess.Chess;
 
 public class ChessManager {
     private static ChessManager instance;
@@ -82,6 +85,10 @@ public class ChessManager {
             if (game.getBlackPlayer() != null) {
                 playerToGame.remove(game.getBlackPlayer());
             }
+
+            if (game.aiEngine != null) {
+                game.aiEngine.close();
+            }
         }
     }
 
@@ -111,6 +118,15 @@ public class ChessManager {
                 boardCenter.getX() + col + 0.5,
                 boardCenter.getY() + 0.5,
                 boardCenter.getZ() + row + 0.5);
+    }
+
+    public void tick(MinecraftServer server) {
+        long worldTime = server.getTicks();
+
+        for (ChessGame game : games.values()) {
+            game.tick(worldTime);
+            Chess.getRenderer().updateTimers(game);
+        }
     }
 
     public static class GameLocation {
