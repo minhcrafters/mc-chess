@@ -61,7 +61,7 @@ public class ChessBoardRenderer {
         }
 
         gameEntities.put(gameId, entities);
-        spawnTimers(world, game, boardCenter);
+        spawnTimers(world, game, boardCenter, entities);
     }
 
     private DisplayEntity.BlockDisplayEntity createSquare(ServerWorld world, BlockPos boardCenter, int row, int col,
@@ -94,7 +94,7 @@ public class ChessBoardRenderer {
             int col,
             Piece piece) {
         Vec3d pos = new Vec3d(
-                boardCenter.getX() + col + 0.5,
+                boardCenter.getX() + (7 - col) + 0.5,
                 boardCenter.getY() + 0.1,
                 boardCenter.getZ() + row + 0.5);
 
@@ -117,7 +117,7 @@ public class ChessBoardRenderer {
 
         // Remove old piece entity at this position
         Vec3d targetPos = new Vec3d(
-                boardCenter.getX() + col + 0.5,
+                boardCenter.getX() + (7 - col) + 0.5,
                 boardCenter.getY() + 0.1,
                 boardCenter.getZ() + row + 0.5);
 
@@ -140,8 +140,6 @@ public class ChessBoardRenderer {
             entities.addAll(pieceEntities);
         }
     }
-
-
 
     public void clearBoard(ServerWorld world, UUID gameId) {
         List<DisplayEntity.BlockDisplayEntity> entities = gameEntities.remove(gameId);
@@ -173,7 +171,7 @@ public class ChessBoardRenderer {
             int col = square[1];
 
             Vec3d pos = new Vec3d(
-                    boardCenter.getX() + col,
+                    boardCenter.getX() + (7 - col),
                     boardCenter.getY() + 0.11,
                     boardCenter.getZ() + row);
 
@@ -212,24 +210,55 @@ public class ChessBoardRenderer {
         });
     }
 
-    private void spawnTimers(ServerWorld world, ChessGame game, BlockPos boardCenter) {
+    private void spawnTimers(ServerWorld world, ChessGame game, BlockPos boardCenter, List<DisplayEntity.BlockDisplayEntity> gameEntityList) {
         List<DisplayEntity.TextDisplayEntity> timers = new ArrayList<>();
 
-        // White Timer (behind White side, row 0)
-        Vec3d whitePos = new Vec3d(
-                boardCenter.getX() + 3.5,
-                boardCenter.getY() + 2.0,
-                boardCenter.getZ() - 1.0);
-        timers.add(createTimerEntity(world, whitePos, "White: " + formatTime(game.getWhiteTime())));
+        // Clock settings
+        float scaleX = 0.8f;
+        float scaleY = 0.4f;
+        float scaleZ = 0.4f;
 
-        // Black Timer (behind Black side, row 7)
+        // White Clock (Left side)
+        Vec3d whitePos = new Vec3d(
+                boardCenter.getX() - 0.5,
+                boardCenter.getY(),
+                boardCenter.getZ() + 3.5);
+
+        gameEntityList.add(createClockBody(world, whitePos, scaleX, scaleY, scaleZ));
+
+        Vec3d whiteTextPos = whitePos.add(0, 0.6, 0);
+        timers.add(createTimerEntity(world, whiteTextPos, "White: " + formatTime(game.getWhiteTime())));
+
+        // Black Clock (Right side)
         Vec3d blackPos = new Vec3d(
-                boardCenter.getX() + 3.5,
-                boardCenter.getY() + 2.0,
-                boardCenter.getZ() + 9.0);
-        timers.add(createTimerEntity(world, blackPos, "Black: " + formatTime(game.getBlackTime())));
+                boardCenter.getX() + 8.5,
+                boardCenter.getY(),
+                boardCenter.getZ() + 3.5);
+
+        gameEntityList.add(createClockBody(world, blackPos, scaleX, scaleY, scaleZ));
+
+        Vec3d blackTextPos = blackPos.add(0, 0.6, 0);
+        timers.add(createTimerEntity(world, blackTextPos, "Black: " + formatTime(game.getBlackTime())));
 
         timerEntities.put(game.getGameId(), timers);
+    }
+
+    private DisplayEntity.BlockDisplayEntity createClockBody(ServerWorld world, Vec3d pos, float sx, float sy, float sz) {
+        DisplayEntity.BlockDisplayEntity entity = new DisplayEntity.BlockDisplayEntity(
+                net.minecraft.entity.EntityType.BLOCK_DISPLAY,
+                world);
+        entity.setPosition(pos);
+        entity.setBlockState(Blocks.SPRUCE_PLANKS.getDefaultState());
+
+        // Center the block on X and Z, sit on Y
+        entity.setTransformation(new net.minecraft.util.math.AffineTransformation(
+                new Vector3f(-sx / 2f, 0f, -sz / 2f),
+                null,
+                new Vector3f(sx, sy, sz),
+                null));
+
+        world.spawnEntity(entity);
+        return entity;
     }
 
     private DisplayEntity.TextDisplayEntity createTimerEntity(ServerWorld world, Vec3d pos, String text) {

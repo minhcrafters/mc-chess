@@ -86,9 +86,7 @@ public class ChessManager {
                 playerToGame.remove(game.getBlackPlayer());
             }
 
-            if (game.aiEngine != null) {
-                game.aiEngine.close();
-            }
+            game.closeAi();
         }
     }
 
@@ -101,7 +99,7 @@ public class ChessManager {
         double relX = worldPos.x - boardCenter.getX();
         double relZ = worldPos.z - boardCenter.getZ();
 
-        int col = (int) Math.floor(relX);
+        int col = 7 - (int) Math.floor(relX);
         int row = (int) Math.floor(relZ);
 
         if (col >= 0 && col < 8 && row >= 0 && row < 8) {
@@ -115,7 +113,7 @@ public class ChessManager {
         // Convert board coordinates to world coordinates
         // Center of each square
         return new Vec3d(
-                boardCenter.getX() + col + 0.5,
+                boardCenter.getX() + (7 - col) + 0.5,
                 boardCenter.getY() + 0.5,
                 boardCenter.getZ() + row + 0.5);
     }

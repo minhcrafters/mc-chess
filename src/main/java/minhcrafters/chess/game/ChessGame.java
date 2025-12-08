@@ -1,7 +1,9 @@
 package minhcrafters.chess.game;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
 
@@ -101,17 +103,15 @@ public class ChessGame {
         return !inCheck;
     }
 
-    public UciEngine aiEngine;
-
-    private Piece.PieceColor aiColor;
+    private final Map<Piece.PieceColor, UciEngine> aiEngines = new HashMap<>();
     private BiConsumer<Move, ChessGame> onAiMove;
 
-    public void setAi(String enginePath, Piece.PieceColor aiColor, BiConsumer<Move, ChessGame> onAiMove) {
-        this.aiEngine = new UciEngine(enginePath);
-        this.aiColor = aiColor;
+    public void addAi(String enginePath, Piece.PieceColor aiColor, BiConsumer<Move, ChessGame> onAiMove) {
+        UciEngine engine = new UciEngine(enginePath);
+        this.aiEngines.put(aiColor, engine);
         this.onAiMove = onAiMove;
         try {
-            this.aiEngine.start();
+            engine.start();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -122,19 +122,27 @@ public class ChessGame {
     }
 
     private void triggerAiMove() {
-        if (aiEngine == null)
+        UciEngine engine = aiEngines.get(currentPlayer);
+        if (engine == null)
             return;
 
         long wtime = whiteTime * 50;
         long btime = blackTime * 50;
         long inc = ChessConfig.HANDLER.instance().incrementSeconds * 1000L;
 
-        aiEngine.getBestMove(FenUtils.getFen(board, currentPlayer), wtime, btime, inc, inc)
+        engine.getBestMove(FenUtils.getFen(board, currentPlayer), wtime, btime, inc, inc)
                 .thenAccept(uciMove -> {
                     if (uciMove != null) {
                         makeAiMove(uciMove);
                     }
                 });
+    }
+
+    public void closeAi() {
+        for (UciEngine engine : aiEngines.values()) {
+            engine.close();
+        }
+        aiEngines.clear();
     }
 
     private void makeAiMove(String uciMove) {
@@ -173,13 +181,11 @@ public class ChessGame {
                     blackTime += increment;
                 }
 
-                // Switch player
                 currentPlayer = currentPlayer.opposite();
 
-                // Check game state
                 updateGameState();
 
-                if (state == GameState.ACTIVE && currentPlayer == aiColor && aiEngine != null) {
+                if (state == GameState.ACTIVE && aiEngines.containsKey(currentPlayer)) {
                     triggerAiMove();
                 }
 

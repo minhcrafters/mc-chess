@@ -29,8 +29,8 @@ public class Board {
         pieces[7][0] = new Piece(Piece.PieceType.ROOK, Piece.PieceColor.BLACK);
         pieces[7][1] = new Piece(Piece.PieceType.KNIGHT, Piece.PieceColor.BLACK);
         pieces[7][2] = new Piece(Piece.PieceType.BISHOP, Piece.PieceColor.BLACK);
-        pieces[7][3] = new Piece(Piece.PieceType.KING, Piece.PieceColor.BLACK);
-        pieces[7][4] = new Piece(Piece.PieceType.QUEEN, Piece.PieceColor.BLACK);
+        pieces[7][3] = new Piece(Piece.PieceType.QUEEN, Piece.PieceColor.BLACK);
+        pieces[7][4] = new Piece(Piece.PieceType.KING, Piece.PieceColor.BLACK);
         pieces[7][5] = new Piece(Piece.PieceType.BISHOP, Piece.PieceColor.BLACK);
         pieces[7][6] = new Piece(Piece.PieceType.KNIGHT, Piece.PieceColor.BLACK);
         pieces[7][7] = new Piece(Piece.PieceType.ROOK, Piece.PieceColor.BLACK);
@@ -42,8 +42,8 @@ public class Board {
         pieces[0][0] = new Piece(Piece.PieceType.ROOK, Piece.PieceColor.WHITE);
         pieces[0][1] = new Piece(Piece.PieceType.KNIGHT, Piece.PieceColor.WHITE);
         pieces[0][2] = new Piece(Piece.PieceType.BISHOP, Piece.PieceColor.WHITE);
-        pieces[0][3] = new Piece(Piece.PieceType.KING, Piece.PieceColor.WHITE);
-        pieces[0][4] = new Piece(Piece.PieceType.QUEEN, Piece.PieceColor.WHITE);
+        pieces[0][3] = new Piece(Piece.PieceType.QUEEN, Piece.PieceColor.WHITE);
+        pieces[0][4] = new Piece(Piece.PieceType.KING, Piece.PieceColor.WHITE);
         pieces[0][5] = new Piece(Piece.PieceType.BISHOP, Piece.PieceColor.WHITE);
         pieces[0][6] = new Piece(Piece.PieceType.KNIGHT, Piece.PieceColor.WHITE);
         pieces[0][7] = new Piece(Piece.PieceType.ROOK, Piece.PieceColor.WHITE);

@@ -30,7 +30,9 @@ public class ChessCommand {
                 .then(CommandManager.literal("start")
                         .executes(this::startGame)
                         .then(CommandManager.literal("ai")
-                                .executes(this::startAiGame)))
+                                .executes(this::startAiGame))
+                        .then(CommandManager.literal("aivsai")
+                                .executes(this::startAiVsAiGame)))
                 .then(CommandManager.literal("join")
                         .then(CommandManager.argument("color", StringArgumentType.word())
                                 .executes(this::joinGame)))
@@ -61,7 +63,7 @@ public class ChessCommand {
 
         manager.assignPlayer(game.getGameId(), UUID.randomUUID(), Piece.PieceColor.BLACK);
         
-        game.setAi(enginePath, Piece.PieceColor.BLACK, (move, g) -> {
+        game.addAi(enginePath, Piece.PieceColor.BLACK, (move, g) -> {
             source.getServer().execute(() -> {
                 ChessManager.GameLocation location = manager.getGameLocation(g.getGameId());
                 if (location != null) {
@@ -94,6 +96,67 @@ public class ChessCommand {
         });
         
         source.sendFeedback(() -> Text.literal("§aAI started as Black!"), false);
+        return 1;
+    }
+
+    private int startAiVsAiGame(CommandContext<ServerCommandSource> context) {
+        int result = startGame(context);
+        if (result == 0) return 0;
+
+        ServerCommandSource source = context.getSource();
+        ServerPlayerEntity player = source.getPlayer();
+        ChessManager manager = ChessManager.getInstance();
+        
+        // Find the game we just started
+        ChessGame game = manager.getGameAtPosition(player.getBlockPos());
+        
+        if (game == null) return 0;
+
+        String enginePath = ChessConfig.HANDLER.instance().uciEnginePath;
+        if (enginePath.isEmpty()) {
+            source.sendError(Text.literal("§cUCI Engine path not configured!"));
+            return 0;
+        }
+
+        manager.assignPlayer(game.getGameId(), UUID.randomUUID(), Piece.PieceColor.WHITE);
+        manager.assignPlayer(game.getGameId(), UUID.randomUUID(), Piece.PieceColor.BLACK);
+        
+        java.util.function.BiConsumer<Move, ChessGame> callback = (move, g) -> {
+            source.getServer().execute(() -> {
+                ChessManager.GameLocation location = manager.getGameLocation(g.getGameId());
+                if (location != null) {
+                    BlockPos boardCenter = location.getBoardCenter();
+                    ServerWorld world = source.getWorld();
+                    
+                    renderer.updatePiece(world, g, boardCenter, move.getFromRow(), move.getFromCol());
+                    renderer.updatePiece(world, g, boardCenter, move.getToRow(), move.getToCol());
+                    
+                    // Handle special moves
+                    if (move.getMoveType() == Move.MoveType.CASTLE_KINGSIDE) {
+                        renderer.updatePiece(world, g, boardCenter, move.getFromRow(), 7);
+                        renderer.updatePiece(world, g, boardCenter, move.getFromRow(), 5);
+                    } else if (move.getMoveType() == Move.MoveType.CASTLE_QUEENSIDE) {
+                        renderer.updatePiece(world, g, boardCenter, move.getFromRow(), 0);
+                        renderer.updatePiece(world, g, boardCenter, move.getFromRow(), 3);
+                    } else if (move.getMoveType() == Move.MoveType.EN_PASSANT) {
+                        renderer.updatePiece(world, g, boardCenter, move.getFromRow(), move.getToCol());
+                    } else if (move.getMoveType() == Move.MoveType.PROMOTION) {
+                         renderer.updatePiece(world, g, boardCenter, move.getToRow(), move.getToCol());
+                    }
+
+                    source.sendFeedback(() -> Text.literal(move.toString()), false);
+                    
+                    if (g.isInCheck()) {
+                         source.sendFeedback(() -> Text.literal("§cCheck!"), false);
+                    }
+                }
+            });
+        };
+
+        game.addAi(enginePath, Piece.PieceColor.WHITE, callback);
+        game.addAi(enginePath, Piece.PieceColor.BLACK, callback);
+        
+        source.sendFeedback(() -> Text.literal("§aAI vs AI started!"), false);
         return 1;
     }
 
